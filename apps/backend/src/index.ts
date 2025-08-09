@@ -1,8 +1,8 @@
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import app from './server/app.js';
-import { connectToDatabase } from './server/database/mongoose.js';
-import { registerSocketHandlers } from './server/sockets/index.js';
+import app from './server/app';
+import { connectToDatabase } from './server/database/mongoose';
+import { registerSocketHandlers } from './server/sockets';
 import dotenv from 'dotenv';
 
 dotenv.config();

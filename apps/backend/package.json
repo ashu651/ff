@@ -5,11 +5,11 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "seed": "ts-node-dev --transpile-only src/seed/seed.ts",
-    "scheduler": "ts-node-dev --transpile-only src/jobs/scheduler.ts"
+    "seed": "tsx src/seed/seed.ts",
+    "scheduler": "tsx src/jobs/scheduler.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -45,6 +45,7 @@
     "@types/qrcode": "^1.5.5",
     "@types/speakeasy": "^2.0.6",
     "@types/web-push": "^3.6.4",
+    "tsx": "^4.16.2",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.5.4"
