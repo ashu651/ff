@@ -17,6 +17,14 @@ async function start() {
     cors: { origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true },
   });
 
+  if (process.env.REDIS_URL) {
+    const { createAdapter } = await import('@socket.io/redis-adapter');
+    const Redis = (await import('ioredis')).default as any;
+    const pubClient = new Redis(process.env.REDIS_URL);
+    const subClient = new Redis(process.env.REDIS_URL);
+    io.adapter(createAdapter(pubClient, subClient));
+  }
+
   io.on('connection', (socket) => {
     socket.on('typing', (room: string) => socket.to(room).emit('typing'));
   });
