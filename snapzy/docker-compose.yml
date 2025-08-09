@@ -1,0 +1,45 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: snapzy
+    ports: ["5432:5432"]
+    volumes: ["pg_data:/var/lib/postgresql/data"]
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+  api:
+    build: ./apps/api
+    env_file:
+      - .env.example
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/snapzy
+      - REDIS_URL=redis://redis:6379
+      - FRONTEND_URL=http://localhost:3000
+    ports: ["4000:4000"]
+    depends_on: [db, redis]
+  web:
+    build: ./apps/web
+    env_file:
+      - .env.example
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+    ports: ["3000:3000"]
+    depends_on: [api]
+  captioning:
+    build: ./services/ai/captioning-service
+    environment:
+      - REDIS_URL=redis://redis:6379
+    ports: ["5010:5010"]
+    depends_on: [redis]
+  moderation:
+    build: ./services/ai/moderation-service
+    ports: ["5020:5020"]
+  embeddings:
+    build: ./services/ai/embeddings-service
+    ports: ["5030:5030"]
+volumes:
+  pg_data:
