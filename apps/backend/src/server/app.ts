@@ -15,6 +15,9 @@ import { router as searchRouter } from '../server/routes/search.routes.js';
 import { router as uploadsRouter } from '../server/routes/uploads.routes.js';
 import { router as exploreRouter } from '../server/routes/explore.routes.js';
 import { router as moderationRouter } from '../server/routes/moderation.routes.js';
+import { router as commerceRouter } from '../server/routes/commerce.routes.js';
+import { router as analyticsRouter } from '../server/routes/analytics.routes.js';
+import { router as adminRouter } from '../server/routes/admin.routes.js';
 import { notFoundHandler, errorHandler } from '../server/middlewares/error.js';
 
 const app = express();
@@ -46,6 +49,9 @@ app.use('/api/search', searchRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/explore', exploreRouter);
 app.use('/api/moderation', moderationRouter);
+app.use('/api/commerce', commerceRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/api/admin', adminRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
