@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { User } from '../models/User.js';
 import { comparePassword, hashPassword } from '../utils/password.js';
 import { generateAccessToken, generateRefreshToken } from '../utils/token.js';
+import { DeviceSession } from '../models/DeviceSession.js';
 
 const registerSchema = z.object({
   username: z.string().min(3).max(20).toLowerCase(),
@@ -31,7 +32,7 @@ export async function register(req: Request, res: Response): Promise<void> {
   res.status(201).json({ user: serializeUser(user) });
 }
 
-const loginSchema = z.object({ identifier: z.string(), password: z.string() });
+const loginSchema = z.object({ identifier: z.string(), password: z.string(), totp: z.string().optional() });
 
 export async function login(req: Request, res: Response): Promise<void> {
   const parsed = loginSchema.safeParse(req.body);
@@ -39,7 +40,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     res.status(400).json({ message: 'Invalid data' });
     return;
   }
-  const { identifier, password } = parsed.data;
+  const { identifier, password, totp } = parsed.data;
   const user = await User.findOne({
     $or: [{ email: identifier.toLowerCase() }, { username: identifier.toLowerCase() }],
   });
@@ -52,9 +53,19 @@ export async function login(req: Request, res: Response): Promise<void> {
     res.status(401).json({ message: 'Invalid credentials' });
     return;
   }
+  if (user.twoFactorEnabled) {
+    const speakeasy = (await import('speakeasy')).default;
+    const verified = speakeasy.totp.verify({ secret: user.twoFactorSecret || '', encoding: 'base32', token: totp || '' });
+    if (!verified) {
+      res.status(401).json({ message: 'Two-factor code required' });
+      return;
+    }
+  }
   const accessToken = generateAccessToken(user.id);
   const refreshToken = generateRefreshToken(user.id);
   setAuthCookies(res, accessToken, refreshToken);
+  // track session
+  await DeviceSession.create({ user: user._id, userAgent: req.headers['user-agent'], ip: req.ip });
   res.json({ user: serializeUser(user) });
 }
 
@@ -99,6 +110,43 @@ export async function forgotPassword(_req: Request, res: Response): Promise<void
 export async function resetPassword(_req: Request, res: Response): Promise<void> {
   // Stub: verify token and set new password
   res.json({ message: 'Password has been reset' });
+}
+
+export async function twofaSetup(req: Request, res: Response): Promise<void> {
+  const speakeasy = (await import('speakeasy')).default;
+  const qrcode = await import('qrcode');
+  const secret = speakeasy.generateSecret({ name: `Snapzy (${req.auth!.userId})` });
+  const otpauth = secret.otpauth_url as string;
+  const dataUrl = await qrcode.toDataURL(otpauth);
+  await User.findByIdAndUpdate(req.auth!.userId, { twoFactorSecret: secret.base32 });
+  res.json({ otpauthUrl: otpauth, qr: dataUrl });
+}
+
+export async function twofaEnable(req: Request, res: Response): Promise<void> {
+  const code = String(req.body.code || '');
+  const user = await User.findById(req.auth!.userId);
+  if (!user?.twoFactorSecret) return void res.status(400).json({ message: 'No 2FA secret' });
+  const speakeasy = (await import('speakeasy')).default;
+  const ok = speakeasy.totp.verify({ secret: user.twoFactorSecret, encoding: 'base32', token: code });
+  if (!ok) return void res.status(400).json({ message: 'Invalid code' });
+  user.twoFactorEnabled = true;
+  await user.save();
+  res.json({ ok: true });
+}
+
+export async function twofaDisable(req: Request, res: Response): Promise<void> {
+  await User.findByIdAndUpdate(req.auth!.userId, { twoFactorEnabled: false, twoFactorSecret: null });
+  res.json({ ok: true });
+}
+
+export async function sessions(req: Request, res: Response): Promise<void> {
+  const list = await DeviceSession.find({ user: req.auth!.userId }).sort({ createdAt: -1 }).lean();
+  res.json({ sessions: list });
+}
+
+export async function revokeSession(req: Request, res: Response): Promise<void> {
+  await DeviceSession.deleteOne({ _id: req.params.id, user: req.auth!.userId });
+  res.json({ ok: true });
 }
 
 function setAuthCookies(res: Response, access: string, refresh: string): void {

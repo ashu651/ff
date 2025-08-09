@@ -13,6 +13,7 @@ const createSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   userTags: z.array(z.string()).optional().default([]),
   location: z.string().optional(),
+  scheduledAt: z.string().optional(),
 });
 
 export async function createPost(req: Request, res: Response): Promise<void> {
@@ -21,11 +22,13 @@ export async function createPost(req: Request, res: Response): Promise<void> {
     res.status(400).json({ message: 'Invalid data', details: parsed.error.flatten() });
     return;
   }
-  const data = parsed.data;
-  const hashtags = new Set<string>((data.tags || []).map((t) => t.replace(/^#/, '').toLowerCase()));
+  const data = parsed.data as any;
+  const hashtags = new Set<string>((data.tags || []).map((t: string) => t.replace(/^#/, '').toLowerCase()));
   if (data.caption) {
     for (const match of data.caption.matchAll(/#(\w+)/g)) hashtags.add(match[1].toLowerCase());
   }
+  const scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
+  const isPublished = !scheduledAt || scheduledAt <= new Date();
   const created = await Post.create({
     user: req.auth!.userId,
     caption: data.caption,
@@ -35,9 +38,10 @@ export async function createPost(req: Request, res: Response): Promise<void> {
     tags: Array.from(hashtags),
     userTags: data.userTags,
     location: data.location,
+    scheduledAt,
+    isPublished,
   });
 
-  // Update hashtag counts asynchronously
   const ops = Array.from(hashtags).map((name) =>
     Hashtag.updateOne({ name }, { $inc: { postsCount: 1 } }, { upsert: true }).exec()
   );
@@ -52,7 +56,7 @@ export async function feed(req: Request, res: Response): Promise<void> {
   const cursor = req.query.cursor ? new Date(String(req.query.cursor)) : new Date();
   const limit = Math.min(Number(req.query.limit) || 10, 50);
 
-  const posts = await Post.find({ user: { $in: [me!._id, ...following] }, createdAt: { $lt: cursor } })
+  const posts = await Post.find({ user: { $in: [me!._id, ...following] }, createdAt: { $lt: cursor }, isPublished: true })
     .sort({ createdAt: -1 })
     .limit(limit)
     .populate('user', 'username name avatarUrl')

@@ -15,6 +15,9 @@ export interface IUser extends Document {
   blockedUsers: Types.ObjectId[];
   mutedUsers: Types.ObjectId[];
   closeFriends: Types.ObjectId[];
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string | null;
+  locale?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +38,9 @@ const userSchema = new Schema<IUser>(
     blockedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     mutedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     closeFriends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String, default: null },
+    locale: { type: String, default: 'en' },
   },
   { timestamps: true }
 );

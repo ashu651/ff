@@ -19,6 +19,8 @@ export interface IPost extends Document {
   location?: string;
   likes: Types.ObjectId[];
   commentsCount: number;
+  scheduledAt?: Date | null;
+  isPublished: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +43,8 @@ const postSchema = new Schema<IPost>(
     location: { type: String, index: true },
     likes: [{ type: Schema.Types.ObjectId, ref: 'User', index: true }],
     commentsCount: { type: Number, default: 0 },
+    scheduledAt: { type: Date, default: null, index: true },
+    isPublished: { type: Boolean, default: true, index: true },
   },
   { timestamps: true }
 );
