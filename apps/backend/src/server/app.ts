@@ -18,6 +18,8 @@ import { router as moderationRouter } from '../server/routes/moderation.routes.j
 import { router as commerceRouter } from '../server/routes/commerce.routes.js';
 import { router as analyticsRouter } from '../server/routes/analytics.routes.js';
 import { router as adminRouter } from '../server/routes/admin.routes.js';
+import { router as pushRouter } from '../server/routes/push.routes.js';
+import { router as accountLinkRouter } from '../server/routes/accountLink.routes.js';
 import { notFoundHandler, errorHandler } from '../server/middlewares/error.js';
 
 const app = express();
@@ -52,6 +54,8 @@ app.use('/api/moderation', moderationRouter);
 app.use('/api/commerce', commerceRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/push', pushRouter);
+app.use('/api/account-links', accountLinkRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
