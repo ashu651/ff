@@ -1,11 +1,22 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchJson } from '../../lib/api';
 import { PostGrid } from '../../components/PostGrid';
 
 export default function ExplorePage() {
   const [q, setQ] = useState('');
-  const [results, setResults] = useState<any>({ users: [], posts: [] });
+  const [results, setResults] = useState<any>({ users: [], posts: [], hashtags: [] });
+  const [trending, setTrending] = useState<any>({ posts: [], hashtags: [] });
+
+  useEffect(() => {
+    (async () => {
+      const [tp, th] = await Promise.all([
+        fetchJson('/api/explore/trending', { credentials: 'include' }),
+        fetchJson('/api/explore/hashtags', { credentials: 'include' }),
+      ]);
+      setTrending({ posts: tp.posts, hashtags: th.hashtags });
+    })();
+  }, []);
 
   async function onSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +49,23 @@ export default function ExplorePage() {
           </div>
         </div>
       )}
-      <PostGrid posts={results.posts} />
+      {!!results.hashtags.length && (
+        <div>
+          <h2 className="font-semibold mb-2">Hashtags</h2>
+          <div className="flex gap-2 flex-wrap">
+            {results.hashtags.map((h: any) => (
+              <span key={h._id} className="px-3 py-1 rounded-full border text-sm">#{h.name}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      <h2 className="font-semibold">Trending</h2>
+      <div className="flex gap-2 flex-wrap">
+        {trending.hashtags.map((h: any) => (
+          <span key={h._id} className="px-3 py-1 rounded-full border text-sm">#{h.name}</span>
+        ))}
+      </div>
+      <PostGrid posts={trending.posts} />
     </div>
   );
 }

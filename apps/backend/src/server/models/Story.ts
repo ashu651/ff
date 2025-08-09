@@ -6,6 +6,7 @@ export interface IStory extends Document {
   mediaType: 'image' | 'video';
   expiresAt: Date;
   viewers: Types.ObjectId[];
+  audience: 'public' | 'close_friends';
   createdAt: Date;
 }
 
@@ -16,6 +17,7 @@ const storySchema = new Schema<IStory>(
     mediaType: { type: String, enum: ['image', 'video'], required: true },
     expiresAt: { type: Date, required: true, index: true },
     viewers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    audience: { type: String, enum: ['public', 'close_friends'], default: 'public', index: true },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

@@ -2,12 +2,16 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { Post } from '../models/Post.js';
 import { User } from '../models/User.js';
+import { Hashtag } from '../models/Hashtag.js';
 
+const mediaItem = z.object({ url: z.string().url(), type: z.enum(['image', 'video']), thumbnailUrl: z.string().url().optional() });
 const createSchema = z.object({
   caption: z.string().max(2200).optional(),
-  mediaUrl: z.string().url(),
-  mediaType: z.enum(['image', 'video']),
+  mediaUrl: z.string().url().optional(), // backward compat
+  mediaType: z.enum(['image', 'video']).optional(),
+  media: z.array(mediaItem).optional(),
   tags: z.array(z.string()).optional().default([]),
+  userTags: z.array(z.string()).optional().default([]),
   location: z.string().optional(),
 });
 
@@ -17,7 +21,28 @@ export async function createPost(req: Request, res: Response): Promise<void> {
     res.status(400).json({ message: 'Invalid data', details: parsed.error.flatten() });
     return;
   }
-  const created = await Post.create({ ...parsed.data, user: req.auth!.userId });
+  const data = parsed.data;
+  const hashtags = new Set<string>((data.tags || []).map((t) => t.replace(/^#/, '').toLowerCase()));
+  if (data.caption) {
+    for (const match of data.caption.matchAll(/#(\w+)/g)) hashtags.add(match[1].toLowerCase());
+  }
+  const created = await Post.create({
+    user: req.auth!.userId,
+    caption: data.caption,
+    mediaUrl: data.mediaUrl,
+    mediaType: data.mediaType,
+    media: data.media || (data.mediaUrl && data.mediaType ? [{ url: data.mediaUrl, type: data.mediaType }] : []),
+    tags: Array.from(hashtags),
+    userTags: data.userTags,
+    location: data.location,
+  });
+
+  // Update hashtag counts asynchronously
+  const ops = Array.from(hashtags).map((name) =>
+    Hashtag.updateOne({ name }, { $inc: { postsCount: 1 } }, { upsert: true }).exec()
+  );
+  void Promise.allSettled(ops);
+
   res.status(201).json({ post: created });
 }
 
