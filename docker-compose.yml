@@ -1,0 +1,55 @@
+version: '3.9'
+services:
+  mongo:
+    image: mongo:7
+    container_name: snapzy-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: snapzy-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: snapzy-backend
+    restart: unless-stopped
+    env_file:
+      - ./apps/backend/.env.example
+    environment:
+      - MONGO_URI=mongodb://root:example@mongo:27017/snapzy?authSource=admin
+      - REDIS_URL=redis://redis:6379
+      - CORS_ORIGIN=http://localhost:3000
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongo
+      - redis
+
+  frontend:
+    build:
+      context: ./apps/frontend
+    container_name: snapzy-frontend
+    restart: unless-stopped
+    env_file:
+      - ./apps/frontend/.env.example
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
