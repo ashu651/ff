@@ -111,3 +111,54 @@ export async function privacySettings(req: Request, res: Response): Promise<void
   const me = await User.findById(req.auth!.userId).select('isPrivate closeFriends blockedUsers mutedUsers verified').lean();
   res.json({ settings: me });
 }
+
+export async function addToCollection(req: Request, res: Response): Promise<void> {
+  const name = String(req.body.name || '').trim();
+  const postId = req.params.postId;
+  if (!name) return void res.status(400).json({ message: 'Collection name required' });
+  await User.updateOne({ _id: req.auth!.userId, 'collections.name': name }, { $addToSet: { 'collections.$.posts': postId } });
+  const updated = await User.updateOne({ _id: req.auth!.userId, 'collections.name': { $ne: name } }, { $push: { collections: { name, posts: [postId] } } });
+  res.json({ ok: true, upserted: updated.modifiedCount === 0 });
+}
+
+export async function removeFromCollection(req: Request, res: Response): Promise<void> {
+  const name = String(req.body.name || '').trim();
+  const postId = req.params.postId;
+  await User.updateOne({ _id: req.auth!.userId, 'collections.name': name }, { $pull: { 'collections.$.posts': postId } });
+  res.json({ ok: true });
+}
+
+export async function listCollections(req: Request, res: Response): Promise<void> {
+  const me = await User.findById(req.auth!.userId).select('collections').lean();
+  res.json({ collections: me?.collections || [] });
+}
+
+export async function pinPost(req: Request, res: Response): Promise<void> {
+  const postId = req.params.postId;
+  await User.findByIdAndUpdate(req.auth!.userId, { $addToSet: { pinnedPosts: postId } });
+  res.json({ ok: true });
+}
+
+export async function unpinPost(req: Request, res: Response): Promise<void> {
+  const postId = req.params.postId;
+  await User.findByIdAndUpdate(req.auth!.userId, { $pull: { pinnedPosts: postId } });
+  res.json({ ok: true });
+}
+
+export async function addCloseFriend(req: Request, res: Response): Promise<void> {
+  const friendId = req.params.id;
+  await User.findByIdAndUpdate(req.auth!.userId, { $addToSet: { closeFriends: friendId } });
+  res.json({ ok: true });
+}
+
+export async function removeCloseFriend(req: Request, res: Response): Promise<void> {
+  const friendId = req.params.id;
+  await User.findByIdAndUpdate(req.auth!.userId, { $pull: { closeFriends: friendId } });
+  res.json({ ok: true });
+}
+
+export async function requestVerification(req: Request, res: Response): Promise<void> {
+  const note = String(req.body.note || '');
+  await User.findByIdAndUpdate(req.auth!.userId, { verificationRequest: { status: 'pending', note } });
+  res.json({ ok: true });
+}

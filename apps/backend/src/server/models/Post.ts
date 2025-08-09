@@ -21,6 +21,7 @@ export interface IPost extends Document {
   commentsCount: number;
   scheduledAt?: Date | null;
   isPublished: boolean;
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +46,7 @@ const postSchema = new Schema<IPost>(
     commentsCount: { type: Number, default: 0 },
     scheduledAt: { type: Date, default: null, index: true },
     isPublished: { type: Boolean, default: true, index: true },
+    isArchived: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

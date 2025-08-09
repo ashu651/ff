@@ -14,6 +14,7 @@ import { router as notificationsRouter } from '../server/routes/notifications.ro
 import { router as searchRouter } from '../server/routes/search.routes.js';
 import { router as uploadsRouter } from '../server/routes/uploads.routes.js';
 import { router as exploreRouter } from '../server/routes/explore.routes.js';
+import { router as moderationRouter } from '../server/routes/moderation.routes.js';
 import { notFoundHandler, errorHandler } from '../server/middlewares/error.js';
 
 const app = express();
@@ -44,6 +45,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/explore', exploreRouter);
+app.use('/api/moderation', moderationRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
