@@ -10,6 +10,13 @@ import xss from 'xss-clean';
 import swaggerUi from 'swagger-ui-express';
 import { router as authRouter } from './routes/auth.router.js';
 import { router as postsRouter } from './routes/posts.router.js';
+import { router as uploadsRouter } from './routes/uploads.router.js';
+import { router as notificationsRouter } from './routes/notifications.router.js';
+import { router as storiesRouter } from './routes/stories.router.js';
+import { router as messagesRouter } from './routes/messages.router.js';
+import { router as searchRouter } from './routes/search.router.js';
+import { router as exploreRouter } from './routes/explore.router.js';
+import { router as adminRouter } from './routes/admin.router.js';
 
 const app = express();
 
@@ -35,6 +42,13 @@ app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/posts', postsRouter);
+app.use('/api/v1/uploads', uploadsRouter);
+app.use('/api/v1/notifications', notificationsRouter);
+app.use('/api/v1/stories', storiesRouter);
+app.use('/api/v1/messages', messagesRouter);
+app.use('/api/v1/search', searchRouter);
+app.use('/api/v1/explore', exploreRouter);
+app.use('/api/v1/admin', adminRouter);
 
 app.use((_req, res) => res.status(404).json({ message: 'Not Found' }));
 app.use((err: any, _req: any, res: any, _next: any) => {

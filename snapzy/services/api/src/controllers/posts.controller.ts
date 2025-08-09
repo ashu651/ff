@@ -29,3 +29,15 @@ export async function feed(req: Request, res: Response) {
   const nextCursor = posts.length ? posts[posts.length - 1].createdAt.toISOString() : null;
   res.json({ posts, nextCursor });
 }
+
+export async function like(req: Request, res: Response) {
+  const id = req.params.id;
+  await Post.updateOne({ _id: id }, { $inc: { likesCount: 1 } });
+  res.json({ ok: true });
+}
+
+export async function unlike(req: Request, res: Response) {
+  const id = req.params.id;
+  await Post.updateOne({ _id: id, likesCount: { $gt: 0 } }, { $inc: { likesCount: -1 } });
+  res.json({ ok: true });
+}
